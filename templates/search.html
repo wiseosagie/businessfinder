@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Business</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Search Business</h1>
+            <div>
+                <span class="mr-3">Welcome, {{ name }}</span>
+                <a href="{{ url_for('login') }}" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+        <form id="searchForm">
+            <div class="form-group">
+                <label for="query">Business Type</label>
+                <input type="text" class="form-control" id="query" name="query" placeholder="Enter business type (e.g., restaurant, salon)" required>
+            </div>
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" class="form-control" id="location" name="location" placeholder="Enter location (e.g., city, address)" required>
+            </div>
+            <div class="form-group">
+                <label for="num_businesses">Number of Businesses</label>
+                <input type="number" class="form-control" id="num_businesses" name="num_businesses" placeholder="Enter number of businesses to search" required>
+            </div>
+            <div class="form-group">
+                <label for="search_area">Search Area (in miles)</label>
+                <input type="number" class="form-control" id="search_area" name="search_area" placeholder="Enter search area in miles" required>
+            </div>
+            <input type="hidden" id="csv_filename" name="csv_filename">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+        <!-- <div class="mt-5" id="results"></div> -->
+        <button id="downloadCsv" class="btn btn-success mt-3" style="display: none;">Download CSV</button>
+    </div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const query = document.getElementById('query').value;
+            const location = document.getElementById('location').value;
+            const num_businesses = document.getElementById('num_businesses').value;
+            const search_area = document.getElementById('search_area').value;
+
+            const response = await fetch('/search_business', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query, location, num_businesses, search_area })
+            });
+
+            const data = await response.json();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (data.error) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            } else {
+                
+
+                // Store the CSV filename
+                document.getElementById('csv_filename').value = data.csv_filename;
+
+                // Show the download button
+                document.getElementById('downloadCsv').style.display = 'block';
+            }
+        });
+
+        document.getElementById('downloadCsv').addEventListener('click', async function() {
+            const csv_filename = document.getElementById('csv_filename').value;
+
+            const response = await fetch('/download_csv', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ csv_filename })
+            });
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'businesses.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
